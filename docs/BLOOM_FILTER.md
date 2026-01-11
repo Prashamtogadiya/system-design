@@ -1,86 +1,74 @@
-# Bloom Filter Design
+# Bloom Filter Design for Username Availability
 
 ## Purpose
-
-Reduce database reads for username availability checks by using a memory-efficient probabilistic data structure (Bloom Filter). 
+This service implements a **Bloom Filter**—a space-efficient probabilistic data structure—to reduce unnecessary database reads. By checking the filter first, we can immediately identify available usernames without hitting the database, significantly lowering latency and DB load.
 
 ---
 
 ## Parameters
 
 | Symbol | Meaning |
-|--------|--------|
-| **m**  | Number of bits in the Bloom Filter array (size of filter) |
-| **k**  | Number of hash functions |
-| **n**  | Expected number of elements (users) |
-| **p**  | Desired false positive probability |
+| :--- | :--- |
+| $m$ | Total number of **Bits** in the array |
+| $k$ | Number of hash functions |
+| $n$ | Expected number of elements (total users) |
+| $p$ | Desired false positive probability |
 
 ---
 
 ## Mathematical Formulas
 
-### 1. Optimal size of Bloom Filter (`m`)
+### 1. Optimal Number of Bits ($m$)
+To determine the total size of the bit array required based on the number of users ($n$) and the acceptable false positive rate ($p$):
 
-\[
-m = -\frac{n \cdot \ln(p)}{(\ln 2)^2}
-\]
-
-- `n` = number of expected elements  
-- `p` = false positive rate  
-- `m` = size in bits  
-
-**Example:**  
-- n = 1,000,000 users  
-- p = 0.01 (1% false positive)
-
-\[
-m = -\frac{1,000,000 \cdot \ln(0.01)}{(0.6931)^2} \approx 9,585,000 \text{ bits } \approx 1.14 \text{ MB}
-\]
+$$m = -\frac{n \cdot \ln(p)}{(\ln 2)^2}$$
 
 ---
 
-### 2. Optimal number of hash functions (`k`)
+### 2. Optimal Number of Hash Functions ($k$)
+To minimize the false positive rate for a specific number of bits ($m$):
 
-\[
-k = \frac{m}{n} \cdot \ln 2
-\]
-
-- Using above numbers:
-
-\[
-k = \frac{9,585,000}{1,000,000} \cdot 0.6931 \approx 6.64 \approx 7
-\]
-
-> So we use **7 hash functions** for this scale.
+$$k = \frac{m}{n} \cdot \ln 2$$
 
 ---
 
-## Flow of the Service
+### 3. False Positive Probability ($p$)
+To calculate the current error rate based on the number of bits ($m$), hash functions ($k$), and current elements ($n$):
 
-1. User enters a username.
-2. Bloom Filter checks in memory:
-   - If Bloom says **not present**, username is available → return available.
-   - If Bloom says **present**, query DB to confirm (handle false positives).
-3. On registration, username is added to Bloom Filter and DB.
-4. Bloom Filter is memory-efficient; reduces DB queries for millions of users.
+$$p \approx \left( 1 - e^{-\frac{kn}{m}} \right)^k$$
+
+> **Pro Tip:** As $n$ (users) increases, the number of flipped bits increases, which raises the probability $p$. Monitoring the "fill ratio" of your bits is key to maintaining performance.
 
 ---
 
-## Example Table
+## System Flow
 
-| n (users) | p (false positive) | m (bits) | k (hashes) |
-|------------|------------------|----------|------------|
-| 1,000      | 0.01             | 9,585    | 7          |
-| 100,000    | 0.01             | 958,505  | 7          |
-| 1,000,000  | 0.01             | 9,585,058| 7          |
 
-> Bloom Filter scales well for **large user bases** like Twitter.
+
+1. **User Query:** User enters a username to check availability.
+2. **Bit Array Check:**
+    * The username is hashed $k$ times.
+    * Each hash points to a specific index in the **$m$ bits**.
+    * **If any bit is 0:** The username is definitely available. Return `true`.
+    * **If all bits are 1:** The username *might* be taken.
+3. **DB Verification:** Only if the Bloom Filter returns "Present," the system queries **MongoDB** to confirm.
+4. **Synchronization:** Upon registration, the corresponding bits are set to `1` in memory and the record is saved to the DB.
+
+---
+
+## Scaling Reference ($p = 0.01$)
+
+| $n$ (Users) | $m$ (Total Bits) | $k$ (Hashes) | Memory Size |
+| :--- | :--- | :--- | :--- |
+| 1,000 | 9,585 | 7 | ~1.2 KB |
+| 100,000 | 958,505 | 7 | ~120 KB |
+| 1,000,000 | 9,585,058 | 7 | ~1.14 MB |
 
 ---
 
 ## Tech Stack
-
-- Node.js + TypeScript
-- Express.js (backend server)
-- MongoDB (for persistent storage)
-- Custom Bloom Filter library (`packages/bloom-filter`)
+* **Language:** TypeScript
+* **Runtime:** Node.js
+* **Framework:** Express.js
+* **Storage:** MongoDB
+* **Internal Lib:** `packages/bloom-filter`
