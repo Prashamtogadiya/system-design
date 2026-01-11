@@ -1,0 +1,13 @@
+{
+  "name": "bloom-filter-backed-user-service",
+  "private": true,
+  "scripts": {
+    "dev": "ts-node src/server.ts"
+  },
+  "dependencies": {
+    "@system-design/bloom-filter": "*",
+    "express": "^4.19.0",
+    "mongoose": "^8.0.0",
+    "dotenv": "^16.0.0"
+  }
+}
