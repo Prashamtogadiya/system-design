@@ -9,7 +9,8 @@
 
     "baseUrl": ".",
     "paths": {
-      "@system-design/bloom-filter": ["packages/bloom-filter/src"]
+      "@system-design/bloom-filter": ["packages/bloom-filter/src"],
+      "@system-design/cache":["packages/cache/src"],
     }
   }
 }
