@@ -77,7 +77,7 @@ All implementations use **Node.js + TypeScript** in a **TurboRepo monorepo** str
 - Hit / miss / eviction metrics
 - Measured latency improvement:
   - **Cold request:** ~700ms
-  - **Cached request:** ~3–4ms
+  - **Cached request:** ~4-7ms
 
 **Key concepts**
 - Temporal locality
