@@ -11,40 +11,38 @@ export class LRUCache<K, V> extends BaseCache<K, V> implements Cache<K, V> {
   }
 
   get(key: K): V | null {
-  const entry = this.map.get(key);
+    const entry = this.map.get(key);
 
-  if (!entry || this.isExpired(entry)) {
-    this.map.delete(key);
-    this.recordMiss();
-    return null;
-  }
-
-  this.recordHit();
-
-  // move to MRU
-  this.map.delete(key);
-  this.map.set(key, entry);
-
-  return entry.value;
-}
-
-
- set(key: K, value: V, ttl?: number): void {
-  if (this.map.has(key)) {
-    this.map.delete(key);
-  }
-
-  if (this.map.size >= this.capacity) {
-    const iterator = this.map.keys().next();
-    if (!iterator.done) {
-      this.map.delete(iterator.value);
-      this.recordEviction();
+    if (!entry || this.isExpired(entry)) {
+      this.map.delete(key);
+      this.recordMiss();
+      return null;
     }
+
+    this.recordHit();
+
+    // move to MRU
+    this.map.delete(key);
+    this.map.set(key, entry);
+
+    return entry.value;
   }
 
-  this.map.set(key, this.withTTL(value, ttl));
-}
+  set(key: K, value: V, ttl?: number): void {
+    if (this.map.has(key)) {
+      this.map.delete(key);
+    }
 
+    if (this.map.size >= this.capacity) {
+      const iterator = this.map.keys().next();
+      if (!iterator.done) {
+        this.map.delete(iterator.value);
+        this.recordEviction();
+      }
+    }
+
+    this.map.set(key, this.withTTL(value, ttl));
+  }
 
   delete(key: K): void {
     this.map.delete(key);
